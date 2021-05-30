@@ -13,6 +13,8 @@ msg = [
     },
 ]
 
+admin_phone = 1800000000
+
 
 class SQLMysql(object):
     def __init__(self):
@@ -38,7 +40,7 @@ class SQLMysql(object):
             return True
         except Exception:
             self.conn.rollback()
-            ding_talk("数据创建错误，事务已回滚", 100000000000, 2)
+            ding_talk("数据创建错误，事务已回滚", admin_phone, 2)
             return False
 
 
@@ -59,7 +61,7 @@ def status(name):
     try:
         s = get_login()
     except Exception:
-        ding_talk("JIRA接口数据读取错误~", 10000000000, 2)
+        ding_talk("JIRA接口数据读取错误~", admin_phone, 2)
         return
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -105,14 +107,14 @@ def controller(name, phone):
     try:
         dicts = status(name)
     except Exception:
-        ding_talk("JIRA接口数据读取错误", 100000000, 2)
+        ding_talk("JIRA接口数据读取错误", admin_phone, 2)
         return
     bug_id = dicts['bug_id']
     bug_name = dicts['bug_name']
     try:
         db = SQLMysql()
     except Exception:
-        ding_talk("数据库连接错误，请检查，程序自动关闭", 10000000000, 2)
+        ding_talk("数据库连接错误，请检查，程序自动关闭", admin_phone, 2)
         sys.exit(1)
     sql_query = 'select bugid from jira where bugid = %s'
     sql_create = 'insert into jira (bugid, bugname) value (%s, %s)'
