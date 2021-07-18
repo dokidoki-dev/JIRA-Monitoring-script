@@ -12,17 +12,43 @@ msg = [
         "phone": 1000000000
     },
 ]
-
 admin_phone = 1800000000
+
+jira_config = {
+    "host": "127.0.0.1",
+    "post": 3306,
+    "user": "root",
+    "passwd": '123456',
+    "db": "jira",
+    "login_jira_url": "http://jira.com/login.jsp",
+    "get_bug_url": "http://jira.com/rest/issueNav/1/issueTable",
+    "project": "xxx"
+}
+
+api_headers = {
+    "jira_login_headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/90.0.4430.212 Safari/537.36",
+        "Content-Type": "application/x-www-form-urlencoded",
+    },
+    "jira_getbug_headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/90.0.4430.212 Safari/537.36",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-Atlassian-Token": "no-check",
+        "Origin": "http://jira.com",
+    }
+}
+ding_api_url = '钉钉推送地址'
 
 
 class SQLMysql(object):
     def __init__(self):
-        self.conn = pymysql.connect(host='127.0.0.1',
-                                    port=3306,
-                                    user='root',
-                                    passwd='123456',
-                                    db='jira')
+        self.conn = pymysql.connect(host=jira_config['host'],
+                                    port=jira_config['post'],
+                                    user=jira_config['user'],
+                                    passwd=jira_config['passwd'],
+                                    db=jira_config['db'])
         self.cur = self.conn.cursor()
 
     def __del__(self):
@@ -45,14 +71,10 @@ class SQLMysql(object):
 
 
 def get_login():
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/90.0.4430.212 Safari/537.36",
-        "Content-Type": "application/x-www-form-urlencoded",
-    }
+    headers = api_headers['jira_login_headers']
     s = requests.Session()
     data = "os_username=用户名&os_password=密码&os_destination=&user_role=&atl_token=&login=%E7%99%BB%E5%BD%95"
-    url = 'http://jira.com/login.jsp'
+    url = jira_config['login_jira_url']
     s.post(url, headers=headers, data=data)
     return s
 
@@ -63,16 +85,10 @@ def status(name):
     except Exception:
         ding_talk("JIRA接口数据读取错误~", admin_phone, 2)
         return
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/90.0.4430.212 Safari/537.36",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "X-Atlassian-Token": "no-check",
-        "Origin": "http://jira.com",
-    }
-    jql = "startIndex=0&filterId=-2&jql=project = 项目名称 AND status in (Resolved) AND status changed DURING (" \
-          "startOfWeek(-2), endOfWeek(0)) AND reporter = %s&layoutKey=split-view" % name
-    url = 'http://jira.com/rest/issueNav/1/issueTable'
+    headers = api_headers['jira_getbug_headers']
+    jql = "startIndex=0&filterId=-2&jql=project = %s AND status in (Resolved) AND status changed DURING (" \
+          "startOfWeek(-2), endOfWeek(0)) AND reporter = %s&layoutKey=split-view" % (jira_config['project'], name)
+    url = jira_config['get_bug_url']
     r = s.post(url, headers=headers, data=jql)
     lists = r.json()
     bug_name = []
@@ -84,7 +100,7 @@ def status(name):
 
 def ding_talk(name, phone, args=1):
     headers = {'Content-Type': 'application/json'}
-    api_url = "钉钉推送地址"
+    api_url = ding_api_url
     content = name + "----当前状态已变更为已解决，请关注！@%s" % phone
     if args == 2:
         content = name + " @%s" % phone
